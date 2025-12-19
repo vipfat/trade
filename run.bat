@@ -79,6 +79,22 @@ echo.
 REM Запуск Flask
 echo 🚀 Запуск веб-интерфейса...
 echo.
+
+for /f "tokens=*" %%i in ('python -c "import os; print(os.getenv('ADMIN_USERNAME', 'admin'))"') do set ADMIN_USER=%%i
+for /f "tokens=*" %%i in ('python -c "import os; print(os.getenv('ADMIN_PASSWORD', 'admin123'))"') do set ADMIN_PASS=%%i
+
+echo ================================================================================
+echo ✅ Веб-интерфейс запущен!
+echo.
+echo   🌐 Откройте: http://127.0.0.1:5000
+echo   📝 Логин: %ADMIN_USER%
+echo   🔐 Пароль: %ADMIN_PASS%
+echo.
+echo   Нажмите Ctrl+C для остановки
+echo.
+echo ================================================================================
+echo.
+
 python run.py
 pause
 exit /b 0

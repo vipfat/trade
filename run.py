@@ -77,10 +77,13 @@ def main():
         host = '127.0.0.1'
         debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
         
+        username = os.getenv('ADMIN_USERNAME', 'admin')
+        password = os.getenv('ADMIN_PASSWORD', 'admin123')
+        
         print(f"\n✅ Веб-интерфейс запущен!")
         print(f"   🌐 Откройте: http://{host}:{port}")
-        print(f"   📝 Логин: admin")
-        print(f"   🔐 Пароль: {os.getenv('ADMIN_PASSWORD', 'admin123')}")
+        print(f"   📝 Логин: {username}")
+        print(f"   🔐 Пароль: {password}")
         print(f"\n   Нажмите Ctrl+C для остановки\n")
         print("-" * 60 + "\n")
         
