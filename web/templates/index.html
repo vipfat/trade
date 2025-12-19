@@ -2,7 +2,8 @@
 
 {% block title %}Home - Trading Bot Control Panel{% endblock %}
 
-{% block content %}<div class="row">
+{% block content %}
+<div class="row">
     <div class="col-lg-12">
         <h2>🤖 Trading Bot Control Panel</h2>
         <p class="text-muted">Полнофункциональный интерфейс управления торговым ботом</p>
@@ -11,7 +12,7 @@
 
 <div id="system-info-container" class="row mt-4">
     <div class="col-lg-12 text-center">
-        <p><i class="bi bi-hourglass-split"></i> Загрузка...</p>
+        <p><i class="bi bi-hourglass-split"></i> Загрузка информации о системе...</p>
     </div>
 </div>
 
@@ -22,7 +23,7 @@
                 <h5><i class="bi bi-speedometer2"></i> Dashboard</h5>
             </div>
             <div class="card-body">
-                <p>Мониторинг логов в реальном времени</p>
+                <p>Мониторинг логов в реальном времени, статистика сделок</p>
                 <a href="/dashboard" class="btn btn-primary w-100">Перейти →</a>
             </div>
         </div>
@@ -34,7 +35,7 @@
                 <h5><i class="bi bi-gear"></i> Конфигурация</h5>
             </div>
             <div class="card-body">
-                <p>Редактирование параметров бота</p>
+                <p>Редактирование параметров бота и стратегий</p>
                 <a href="/config" class="btn btn-primary w-100">Перейти →</a>
             </div>
         </div>
@@ -46,7 +47,7 @@
                 <h5><i class="bi bi-file-text"></i> Логи</h5>
             </div>
             <div class="card-body">
-                <p>Просмотр и анализ логов</p>
+                <p>Просмотр, поиск и анализ логов торговли</p>
                 <a href="/logs-view" class="btn btn-primary w-100">Перейти →</a>
             </div>
         </div>
@@ -58,7 +59,7 @@
                 <h5><i class="bi bi-shield-lock"></i> Environment</h5>
             </div>
             <div class="card-body">
-                <p>Управление API ключами и переменными</p>
+                <p>Управление API ключами и переменными окружения</p>
                 <a href="/env-config" class="btn btn-primary w-100">Перейти →</a>
             </div>
         </div>
@@ -75,293 +76,37 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(data => {
         const container = document.getElementById('system-info-container');
         container.innerHTML = `
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="stat-box">
-                    <div class="stat-value">${data.os}</div>
+                    <div class="stat-value"><i class="bi bi-window"></i> ${data.os}</div>
                     <div class="stat-label">Операционная система</div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="stat-box">
-                    <div class="stat-value">${data.python_version}</div>
+                    <div class="stat-value"><i class="bi bi-code-square"></i> ${data.python_version}</div>
                     <div class="stat-label">Python версия</div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="stat-box">
                     <div class="stat-value">${data.cpu_percent}%</div>
-                    <div class="stat-label">CPU Usage</div>
+                    <div class="stat-label">Использование CPU</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-box">
+                    <div class="stat-value">${data.memory_used_gb} GB</div>
+                    <div class="stat-label">Использование памяти</div>
                 </div>
             </div>
         `;
     })
     .catch(err => {
         console.error('Error loading system info:', err);
-        document.getElementById('system-info-container').innerHTML = '<p>Не удалось загрузить информацию о системе</p>';
+        document.getElementById('system-info-container').innerHTML = 
+            '<div class="col-lg-12"><p class="text-danger">Ошибка загрузки информации о системе</p></div>';
     });
 });
-</script>
-{% endblock %}<div class="row mb-4">
-    <div class="col-md-12 text-center">
-        <h1><i class="bi bi-robot"></i> Trading Bot Control Panel</h1>
-        <p class="lead text-muted">Полнофункциональный интерфейс управления AI-торговым ботом</p>
-    </div>
-</div>
-
-<!-- Карточки возможностей -->
-<div class="row mb-5">
-    <div class="col-md-6 col-lg-3 mb-3">
-        <a href="/dashboard" class="text-decoration-none">
-            <div class="card h-100 feature-card">
-                <div class="card-body text-center">
-                    <i class="bi bi-speedometer2" style="font-size: 2.5rem; color: var(--primary-color);"></i>
-                    <h5 class="card-title mt-3">Dashboard</h5>
-                    <p class="card-text small">Мониторинг статуса бота и логов в реальном времени</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    <div class="col-md-6 col-lg-3 mb-3">
-        <a href="/config" class="text-decoration-none">
-            <div class="card h-100 feature-card">
-                <div class="card-body text-center">
-                    <i class="bi bi-gear" style="font-size: 2.5rem; color: var(--primary-color);"></i>
-                    <h5 class="card-title mt-3">Конфигурация</h5>
-                    <p class="card-text small">Редактирование параметров и восстановление defaults</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    <div class="col-md-6 col-lg-3 mb-3">
-        <a href="/logs-view" class="text-decoration-none">
-            <div class="card h-100 feature-card">
-                <div class="card-body text-center">
-                    <i class="bi bi-file-text" style="font-size: 2.5rem; color: var(--primary-color);"></i>
-                    <h5 class="card-title mt-3">Логи</h5>
-                    <p class="card-text small">Просмотр и анализ логов с поиском и фильтрацией</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    <div class="col-md-6 col-lg-3 mb-3">
-        <a href="/env-config" class="text-decoration-none">
-            <div class="card h-100 feature-card">
-                <div class="card-body text-center">
-                    <i class="bi bi-key" style="font-size: 2.5rem; color: var(--primary-color);"></i>
-                    <h5 class="card-title mt-3">Environment</h5>
-                    <p class="card-text small">Управление переменными окружения и API ключами</p>
-                </div>
-            </div>
-        </a>
-    </div>
-</div>
-
-<!-- Информация о системе -->
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="bi bi-info-circle"></i> О системе</h5>
-            </div>
-            <div class="card-body">
-                <div id="system-info">
-                    <div class="loading-spinner">
-                        <div class="spinner-border" role="status"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Быстрые ссылки и советы -->
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="bi bi-lightning-charge"></i> Быстрые команды</h5>
-            </div>
-            <div class="card-body">
-                <button class="btn btn-outline-success w-100 mb-2" onclick="quickStart()">
-                    <i class="bi bi-play-circle"></i> Запустить бота (на Testnet)
-                </button>
-                <button class="btn btn-outline-warning w-100 mb-2" onclick="toggleBot()">
-                    <i class="bi bi-pause-circle"></i> Паузу/Продолжить
-                </button>
-                <button class="btn btn-outline-danger w-100" onclick="stopBot()">
-                    <i class="bi bi-stop-circle"></i> Остановить бота
-                </button>
-                <small class="text-muted d-block mt-3">
-                    💡 Совет: Всегда тестируйте на Testnet перед реальной торговлей
-                </small>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="bi bi-book"></i> Документация</h5>
-            </div>
-            <div class="card-body">
-                <a href="#" class="btn btn-outline-primary w-100 mb-2">
-                    <i class="bi bi-file-earmark-pdf"></i> Читать README.md
-                </a>
-                <a href="#" class="btn btn-outline-primary w-100 mb-2">
-                    <i class="bi bi-lightning"></i> Быстрый старт (5 минут)
-                </a>
-                <a href="#" class="btn btn-outline-primary w-100">
-                    <i class="bi bi-question-circle"></i> Техническая документация
-                </a>
-                <small class="text-muted d-block mt-3">
-                    📚 Начните с README для полной информации
-                </small>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Статистика -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="stat-box">
-            <div class="stat-value">LSTM 60%</div>
-            <div class="stat-label">Deep Learning</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-box">
-            <div class="stat-value">MR 25%</div>
-            <div class="stat-label">Mean Reversion</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-box">
-            <div class="stat-value">MS 15%</div>
-            <div class="stat-label">Microstructure</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-box">
-            <div class="stat-value">100 пар</div>
-            <div class="stat-label">Торговые пары</div>
-        </div>
-    </div>
-</div>
-
-<!-- Текущий статус -->
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="bi bi-activity"></i> Статус бота</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p>
-                            <strong>Текущий статус:</strong>
-                            <span id="bot-status-text" class="badge bg-danger">Остановлен</span>
-                        </p>
-                        <p>
-                            <strong>Последнее обновление:</strong>
-                            <span id="last-update" class="text-muted">-</span>
-                        </p>
-                    </div>
-                    <div class="col-md-6">
-                        <p>
-                            <strong>Режим:</strong>
-                            <span id="bot-mode" class="badge bg-warning">Не сконфигурирован</span>
-                        </p>
-                        <p>
-                            <strong>Версия:</strong>
-                            <span class="text-muted">1.0.0</span>
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-    .feature-card {
-        background: rgba(13, 110, 253, 0.05);
-        border: 1px solid rgba(13, 110, 253, 0.2);
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    
-    .feature-card:hover {
-        background: rgba(13, 110, 253, 0.1);
-        border-color: var(--primary-color);
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(13, 110, 253, 0.2);
-    }
-    
-    .feature-card .card-body {
-        padding: 30px 15px;
-    }
-    
-    .feature-card .card-title {
-        color: var(--primary-color);
-        font-weight: bold;
-    }
-    
-    .feature-card .card-text {
-        color: #bdc3c7;
-    }
-</style>
-
-<script>
-    // Загрузка информации о системе
-    async function loadSystemInfo() {
-        try {
-            const response = await fetch('/api/system-info');
-            const info = await response.json();
-            
-            let html = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>ОС:</strong> <span class="text-muted">${info.platform}</span></p>
-                        <p><strong>Python:</strong> <span class="text-muted">${info.python_version}</span></p>
-                        <p><strong>CPU Cores:</strong> <span class="text-muted">${info.cpu_count}</span></p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Памяти:</strong> <span class="text-muted">${info.memory_used_gb}GB / ${info.memory_total_gb}GB</span></p>
-                        <p><strong>Свободное место:</strong> <span class="text-muted">${info.disk_free_gb}GB</span></p>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('system-info').innerHTML = html;
-        } catch (error) {
-            console.error('Error loading system info:', error);
-        }
-    }
-
-    // Быстрый старт
-    function quickStart() {
-        showNotification('Команда: python main.py --pairs 20 --interval 300 --testnet', 'info');
-        alert('Скопируйте эту команду и выполните её в терминале:\n\npython main.py --pairs 20 --interval 300 --testnet\n\nЭто запустит бота на Testnet с 20 парами для безопасного тестирования.');
-    }
-
-    // Пауза/Продолжить
-    function toggleBot() {
-        showNotification('Функция паузы будет доступна после запуска бота', 'warning');
-    }
-
-    // Остановка бота
-    function stopBot() {
-        showNotification('Нажмите Ctrl+C в терминале для остановки бота', 'warning');
-    }
-
-    // Инициализация
-    document.addEventListener('DOMContentLoaded', () => {
-        loadSystemInfo();
-    });
 </script>
 {% endblock %}
