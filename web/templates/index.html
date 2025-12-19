@@ -2,8 +2,106 @@
 
 {% block title %}Home - Trading Bot Control Panel{% endblock %}
 
-{% block content %}
-<div class="row mb-4">
+{% block content %}<div class="row">
+    <div class="col-lg-12">
+        <h2>🤖 Trading Bot Control Panel</h2>
+        <p class="text-muted">Полнофункциональный интерфейс управления торговым ботом</p>
+    </div>
+</div>
+
+<div id="system-info-container" class="row mt-4">
+    <div class="col-lg-12 text-center">
+        <p><i class="bi bi-hourglass-split"></i> Загрузка...</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-speedometer2"></i> Dashboard</h5>
+            </div>
+            <div class="card-body">
+                <p>Мониторинг логов в реальном времени</p>
+                <a href="/dashboard" class="btn btn-primary w-100">Перейти →</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-gear"></i> Конфигурация</h5>
+            </div>
+            <div class="card-body">
+                <p>Редактирование параметров бота</p>
+                <a href="/config" class="btn btn-primary w-100">Перейти →</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-file-text"></i> Логи</h5>
+            </div>
+            <div class="card-body">
+                <p>Просмотр и анализ логов</p>
+                <a href="/logs-view" class="btn btn-primary w-100">Перейти →</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-shield-lock"></i> Environment</h5>
+            </div>
+            <div class="card-body">
+                <p>Управление API ключами и переменными</p>
+                <a href="/env-config" class="btn btn-primary w-100">Перейти →</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Загрузить информацию о системе
+    fetch('/api/system-info', {
+        headers: getAuthHeaders()
+    })
+    .then(r => r.json())
+    .then(data => {
+        const container = document.getElementById('system-info-container');
+        container.innerHTML = `
+            <div class="col-md-4">
+                <div class="stat-box">
+                    <div class="stat-value">${data.os}</div>
+                    <div class="stat-label">Операционная система</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-box">
+                    <div class="stat-value">${data.python_version}</div>
+                    <div class="stat-label">Python версия</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-box">
+                    <div class="stat-value">${data.cpu_percent}%</div>
+                    <div class="stat-label">CPU Usage</div>
+                </div>
+            </div>
+        `;
+    })
+    .catch(err => {
+        console.error('Error loading system info:', err);
+        document.getElementById('system-info-container').innerHTML = '<p>Не удалось загрузить информацию о системе</p>';
+    });
+});
+</script>
+{% endblock %}<div class="row mb-4">
     <div class="col-md-12 text-center">
         <h1><i class="bi bi-robot"></i> Trading Bot Control Panel</h1>
         <p class="lead text-muted">Полнофункциональный интерфейс управления AI-торговым ботом</p>

@@ -322,9 +322,10 @@ def logout():
 
 
 @app.route('/api/is-authenticated')
+@auth.login_required
 def is_authenticated():
     """Проверить аутентификацию"""
-    return jsonify({'authenticated': session.get('authenticated', False)})
+    return jsonify({'authenticated': True, 'user': auth.current_user()})
 
 
 # ======================== ROUTES - CONFIGURATION ========================
