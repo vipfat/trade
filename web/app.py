@@ -536,30 +536,35 @@ def get_system_info():
 # ======================== ROUTES - STATIC & PAGES ========================
 
 @app.route('/')
+@auth.login_required
 def index():
     """Главная страница"""
     return render_template('index.html')
 
 
 @app.route('/dashboard')
+@auth.login_required
 def dashboard():
     """Дашборд"""
     return render_template('dashboard.html')
 
 
 @app.route('/config')
+@auth.login_required
 def config_page():
     """Страница конфигурации"""
     return render_template('config.html')
 
 
 @app.route('/logs-view')
+@auth.login_required
 def logs_page():
     """Страница логов"""
     return render_template('logs.html')
 
 
 @app.route('/env-config')
+@auth.login_required
 def env_config_page():
     """Страница управления переменными окружения"""
     return render_template('env.html')

@@ -245,11 +245,7 @@
     </nav>
 
     <div class="container-fluid container-main" id="main-container">
-        <div class="loading-spinner">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Загрузка...</span>
-            </div>
-        </div>
+        {% block content %}{% endblock %}
     </div>
 
     <footer class="text-center py-4 mt-5">
@@ -264,36 +260,29 @@
     {% block extra_js %}{% endblock %}
     
     <script>
-        // Глобальные функции
+        // Глобальные функции для использования на странице
+        
         function logout() {
-            // Используем fetch для логаута (работает с Basic Auth)
-            fetch('/api/logout', { 
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(() => {
-                // Очистить Basic Auth - перезагрузить страницу
-                window.location.href = '/';
-            })
-            .catch(err => console.error('Logout error:', err));
+            // Очистить Basic Auth - нужно перезагрузить страницу через редирект на /
+            window.location.href = '/';
         }
 
         function showNotification(message, type = 'info') {
             const alertClass = `alert alert-${type}`;
             const notification = `
-                <div class="${alertClass}" role="alert">
+                <div class="${alertClass}" role="alert" style="margin-bottom: 20px;">
                     <i class="bi bi-exclamation-circle"></i> ${message}
                 </div>
             `;
             
             const container = document.getElementById('main-container');
-            const alert = document.createElement('div');
-            alert.innerHTML = notification;
-            container.insertBefore(alert, container.firstChild);
-            
-            setTimeout(() => alert.remove(), 5000);
+            if (container) {
+                const alert = document.createElement('div');
+                alert.innerHTML = notification;
+                container.insertBefore(alert, container.firstChild);
+                
+                setTimeout(() => alert.remove(), 5000);
+            }
         }
 
         function formatNumber(num) {
@@ -308,189 +297,10 @@
             return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
         }
 
-        // Проверить аутентификацию при загрузке
-        document.addEventListener('DOMContentLoaded', function() {
-            checkAuthentication();
-        });
-
-        function checkAuthentication() {
-            fetch('/api/is-authenticated', {
-                method: 'GET',
-                credentials: 'include'
-            })
-            .then(response => {
-                if (response.status === 401) {
-                    // Не авторизован - показать форму входа
-                    showLoginForm();
-                    return null;
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data && data.authenticated) {
-                    // Авторизован - загрузить основной контент
-                    loadMainContent();
-                } else {
-                    showLoginForm();
-                }
-            })
-            .catch(err => {
-                console.error('Auth check error:', err);
-                showLoginForm();
-            });
-        }
-
-        function showLoginForm() {
-            const mainContainer = document.getElementById('main-container');
-            mainContainer.innerHTML = `
-                <div class="row justify-content-center mt-5">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h4><i class="bi bi-lock"></i> Вход</h4>
-                            </div>
-                            <div class="card-body">
-                                <form id="loginForm">
-                                    <div class="mb-3">
-                                        <label class="form-label">Имя пользователя</label>
-                                        <input type="text" id="username" class="form-control" required placeholder="admin">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Пароль</label>
-                                        <input type="password" id="password" class="form-control" required placeholder="admin123">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary w-100">Войти</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        }
-
-        function handleLogin(e) {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            // Используем Basic Auth
-            const auth = btoa(username + ':' + password);
-            
-            fetch('/api/config', {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Basic ' + auth
-                },
-                credentials: 'include'
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Сохранить credentials в sessionStorage
-                    sessionStorage.setItem('auth', auth);
-                    localStorage.setItem('username', username);
-                    // Перезагрузить страницу
-                    window.location.reload();
-                } else {
-                    showNotification('Неправильные учетные данные', 'danger');
-                }
-            })
-            .catch(err => {
-                console.error('Login error:', err);
-                showNotification('Ошибка при входе: ' + err.message, 'danger');
-            });
-        }
-
-        function loadMainContent() {
-            const mainContainer = document.getElementById('main-container');
-            // Загрузить контент в зависимости от текущей страницы
-            const path = window.location.pathname;
-            
-            if (path === '/' || path === '') {
-                loadIndexPage();
-            } else if (path === '/dashboard') {
-                loadDashboard();
-            } else if (path === '/config') {
-                loadConfigPage();
-            } else if (path === '/logs-view') {
-                loadLogsPage();
-            } else if (path === '/env-config') {
-                loadEnvPage();
-            } else {
-                loadIndexPage();
-            }
-        }
-
-        function loadIndexPage() {
-            fetch('/api/system-info', {
-                headers: getAuthHeaders()
-            })
-            .then(r => r.json())
-            .then(data => {
-                const container = document.getElementById('main-container');
-                container.innerHTML = `
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <h2>🤖 Trading Bot Control Panel</h2>
-                            <p class="text-muted">Полнофункциональный интерфейс управления торговым ботом</p>
-                        </div>
-                    </div>
-                    <div class="row mt-4">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">📊 Информация о системе</div>
-                                <div class="card-body">
-                                    <p><strong>ОС:</strong> ${data.os}</p>
-                                    <p><strong>Python:</strong> ${data.python_version}</p>
-                                    <p><strong>CPU:</strong> ${data.cpu_percent}%</p>
-                                    <p><strong>Память:</strong> ${data.memory_used_gb} GB</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">🔗 Навигация</div>
-                                <div class="card-body">
-                                    <a href="/dashboard" class="btn btn-primary w-100 mb-2">📊 Dashboard</a>
-                                    <a href="/config" class="btn btn-primary w-100 mb-2">⚙️ Конфигурация</a>
-                                    <a href="/logs-view" class="btn btn-primary w-100 mb-2">📝 Логи</a>
-                                    <a href="/env-config" class="btn btn-primary w-100">🔐 Environment</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            })
-            .catch(err => showNotification('Ошибка загрузки: ' + err.message, 'danger'));
-        }
-
         function getAuthHeaders() {
-            const auth = sessionStorage.getItem('auth');
-            if (auth) {
-                return {
-                    'Authorization': 'Basic ' + auth,
-                    'Content-Type': 'application/json'
-                };
-            }
-            return { 'Content-Type': 'application/json' };
-        }
-
-        // Placeholder functions - будут переопределены в специфичных страницах
-        function loadDashboard() {
-            document.getElementById('main-container').innerHTML = '<p>Loading Dashboard...</p>';
-        }
-
-        function loadConfigPage() {
-            document.getElementById('main-container').innerHTML = '<p>Loading Config...</p>';
-        }
-
-        function loadLogsPage() {
-            document.getElementById('main-container').innerHTML = '<p>Loading Logs...</p>';
-        }
-
-        function loadEnvPage() {
-            document.getElementById('main-container').innerHTML = '<p>Loading Environment...</p>';
+            return {
+                'Content-Type': 'application/json'
+            };
         }
     </script>
 </body>
