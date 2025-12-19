@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+
+{% block title %}Logs - Trading Bot Control Panel{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2><i class="bi bi-file-text"></i> Логи</h2>
+        <small class="text-muted">Просмотр и анализ логов торговли</small>
+    </div>
+</div>
+
+<!-- Инструменты -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="btn-group" role="group">
+            <button class="btn btn-primary" onclick="toggleAutoRefresh()">
+                <i class="bi bi-arrow-clockwise"></i> <span id="auto-refresh-text">Включить автообновление</span>
+            </button>
+            <button class="btn btn-success" onclick="refreshLogs()">
+                <i class="bi bi-download"></i> Обновить сейчас
+            </button>
+            <button class="btn btn-info" onclick="downloadLogs()">
+                <i class="bi bi-download"></i> Скачать логи
+            </button>
+            <button class="btn btn-warning" onclick="clearLogs()">
+                <i class="bi bi-trash"></i> Очистить
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Фильтры и поиск -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="input-group">
+            <input type="text" id="search-box" class="form-control" placeholder="Поиск по логам...">
+            <button class="btn btn-outline-secondary" onclick="searchLogs()">
+                <i class="bi bi-search"></i> Поиск
+            </button>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <select id="filter-level" class="form-select" onchange="filterLogs()">
+            <option value="">Все уровни</option>
+            <option value="ERROR">❌ Только ошибки</option>
+            <option value="WARNING">⚠️ Только предупреждения</option>
+            <option value="INFO">ℹ️ Информация</option>
+            <option value="DEBUG">🐛 Debug</option>
+            <option value="TRADE">💰 Только сделки</option>
+        </select>
+    </div>
+</div>
+
+<!-- Статистика -->
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="stat-box">
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-label">Всего записей</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-box">
+            <div class="stat-value" id="stat-trades">0</div>
+            <div class="stat-label">Сделок</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-box">
+            <div class="stat-value" id="stat-errors">0</div>
+            <div class="stat-label">Ошибок</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-box">
+            <div class="stat-value" id="stat-size">0 MB</div>
+            <div class="stat-label">Размер файла</div>
+        </div>
+    </div>
+</div>
+
+<!-- Вкладки -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs-view" type="button">
+                    <i class="bi bi-list"></i> Логи в реальном времени
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="trades-tab" data-bs-toggle="tab" data-bs-target="#trades-view" type="button">
+                    <i class="bi bi-coin"></i> Сделки
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="errors-tab" data-bs-toggle="tab" data-bs-target="#errors-view" type="button">
+                    <i class="bi bi-exclamation-triangle"></i> Ошибки
+                </button>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- Содержимое вкладок -->
+<div class="tab-content">
+    <!-- Логи -->
+    <div class="tab-pane fade show active" id="logs-view" role="tabpanel">
+        <div class="card">
+            <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                <div id="logs-container" style="background: rgba(0, 0, 0, 0.4); border-radius: 8px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.85rem; line-height: 1.6;">
+                    <div class="loading-spinner">
+                        <div class="spinner-border" role="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Сделки -->
+    <div class="tab-pane fade" id="trades-view" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <div id="trades-container">
+                    <div class="loading-spinner">
+                        <div class="spinner-border" role="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ошибки -->
+    <div class="tab-pane fade" id="errors-view" role="tabpanel">
+        <div class="card">
+            <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                <div id="errors-container">
+                    <div class="loading-spinner">
+                        <div class="spinner-border" role="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .nav-tabs .nav-link {
+        color: #bdc3c7;
+        border: none;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        color: var(--primary-color);
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+        background: rgba(13, 110, 253, 0.05);
+    }
+    
+    .log-entry {
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(13, 110, 253, 0.1);
+        color: #ecf0f1;
+        word-break: break-all;
+        transition: background 0.2s ease;
+    }
+    
+    .log-entry:hover {
+        background: rgba(13, 110, 253, 0.05);
+    }
+    
+    .log-entry.error {
+        color: #ff7b7b;
+    }
+    
+    .log-entry.warning {
+        color: #ffc93c;
+    }
+    
+    .log-entry.success {
+        color: #74e291;
+    }
+    
+    .log-entry.trade {
+        color: #74e291;
+        font-weight: 500;
+    }
+    
+    .log-timestamp {
+        color: #7f8c8d;
+        margin-right: 10px;
+    }
+    
+    .log-level {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 3px;
+        margin-right: 10px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    
+    .log-level.error {
+        background: rgba(255, 123, 123, 0.2);
+        color: #ff7b7b;
+    }
+    
+    .log-level.warning {
+        background: rgba(255, 201, 60, 0.2);
+        color: #ffc93c;
+    }
+    
+    .log-level.info {
+        background: rgba(93, 173, 226, 0.2);
+        color: #5dad e2;
+    }
+    
+    .log-level.debug {
+        background: rgba(155, 89, 182, 0.2);
+        color: #9b59b6;
+    }
+    
+    .trade-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .trade-table th, .trade-table td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid rgba(13, 110, 253, 0.1);
+    }
+    
+    .trade-table th {
+        background: rgba(13, 110, 253, 0.1);
+        color: var(--primary-color);
+        font-weight: bold;
+    }
+    
+    .trade-table tr:hover {
+        background: rgba(13, 110, 253, 0.05);
+    }
+</style>
+
+<script>
+    let allLogs = [];
+    let autoRefreshEnabled = false;
+    let autoRefreshInterval = null;
+
+    // Загрузка логов
+    async function refreshLogs() {
+        try {
+            const response = await fetch('/api/logs?lines=500');
+            const data = await response.json();
+            allLogs = data.logs;
+            displayLogs(allLogs);
+            updateStats();
+        } catch (error) {
+            console.error('Error fetching logs:', error);
+            showNotification('Ошибка загрузки логов', 'danger');
+        }
+    }
+
+    // Отображение логов
+    function displayLogs(logs) {
+        let html = '';
+        logs.forEach(log => {
+            const entry = parseLoglLine(log);
+            const classes = `log-entry ${entry.level.toLowerCase()}`;
+            
+            html += `<div class="${classes}">
+                <span class="log-timestamp">${entry.timestamp}</span>
+                <span class="log-level ${entry.level.toLowerCase()}">${entry.level}</span>
+                <span>${entry.message}</span>
+            </div>`;
+        });
+        
+        document.getElementById('logs-container').innerHTML = html || '<div class="text-muted">Логи не найдены</div>';
+    }
+
+    // Парсинг строки лога
+    function parseLoglLine(log) {
+        const timestampMatch = log.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
+        const levelMatch = log.match(/- (DEBUG|INFO|WARNING|ERROR) -/);
+        
+        return {
+            timestamp: timestampMatch ? timestampMatch[1] : 'N/A',
+            level: levelMatch ? levelMatch[1] : 'INFO',
+            message: log
+        };
+    }
+
+    // Загрузка статистики
+    async function updateStats() {
+        try {
+            const response = await fetch('/api/logs/stats');
+            const stats = await response.json();
+            
+            document.getElementById('stat-total').textContent = formatNumber(stats.total_lines || 0);
+            document.getElementById('stat-trades').textContent = formatNumber(stats.trades_count || 0);
+            document.getElementById('stat-errors').textContent = formatNumber(stats.errors_count || 0);
+            document.getElementById('stat-size').textContent = (stats.file_size_mb || 0) + ' MB';
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+        }
+    }
+
+    // Загрузка последних сделок
+    async function loadTrades() {
+        try {
+            const response = await fetch('/api/logs/trades?count=50');
+            const data = await response.json();
+            
+            if (data.trades.length === 0) {
+                document.getElementById('trades-container').innerHTML = '<div class="text-muted">Сделки не найдены</div>';
+                return;
+            }
+            
+            let html = '<table class="trade-table"><tbody>';
+            data.trades.forEach(trade => {
+                const entry = parseLoglLine(trade);
+                html += `<tr>
+                    <td><small class="text-muted">${entry.timestamp}</small></td>
+                    <td><small>${entry.message}</small></td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            
+            document.getElementById('trades-container').innerHTML = html;
+        } catch (error) {
+            console.error('Error loading trades:', error);
+            showNotification('Ошибка загрузки сделок', 'danger');
+        }
+    }
+
+    // Загрузка ошибок
+    async function loadErrors() {
+        try {
+            const response = await fetch('/api/logs/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keyword: 'ERROR', lines: 100 })
+            });
+            
+            const data = await response.json();
+            let html = '';
+            
+            data.results.forEach(error => {
+                const entry = parseLoglLine(error);
+                html += `<div class="log-entry error">
+                    <span class="log-timestamp">${entry.timestamp}</span>
+                    <span class="log-level error">ERROR</span>
+                    <span>${entry.message}</span>
+                </div>`;
+            });
+            
+            document.getElementById('errors-container').innerHTML = html || '<div class="text-muted">Ошибки не найдены</div>';
+        } catch (error) {
+            console.error('Error loading errors:', error);
+            showNotification('Ошибка загрузки ошибок', 'danger');
+        }
+    }
+
+    // Поиск по логам
+    async function searchLogs() {
+        const keyword = document.getElementById('search-box').value;
+        if (!keyword) {
+            refreshLogs();
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/logs/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keyword: keyword, lines: 500 })
+            });
+            
+            const data = await response.json();
+            displayLogs(data.results);
+            showNotification(`Найдено ${data.count} результатов`, 'info');
+        } catch (error) {
+            console.error('Error searching logs:', error);
+            showNotification('Ошибка поиска', 'danger');
+        }
+    }
+
+    // Фильтрация логов
+    function filterLogs() {
+        const level = document.getElementById('filter-level').value;
+        if (!level) {
+            displayLogs(allLogs);
+            return;
+        }
+        
+        const filtered = allLogs.filter(log => log.includes(level));
+        displayLogs(filtered);
+    }
+
+    // Скачивание логов
+    async function downloadLogs() {
+        try {
+            window.location.href = '/api/logs/download';
+        } catch (error) {
+            console.error('Error downloading logs:', error);
+            showNotification('Ошибка скачивания логов', 'danger');
+        }
+    }
+
+    // Очистка логов
+    async function clearLogs() {
+        if (!confirm('Вы уверены? Это удалит все логи.')) return;
+        
+        try {
+            const response = await fetch('/api/logs/clear', { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.success) {
+                showNotification('Логи успешно очищены', 'success');
+                refreshLogs();
+            } else {
+                showNotification('Ошибка очистки логов', 'danger');
+            }
+        } catch (error) {
+            console.error('Error clearing logs:', error);
+            showNotification('Ошибка: ' + error.message, 'danger');
+        }
+    }
+
+    // Автообновление
+    function toggleAutoRefresh() {
+        autoRefreshEnabled = !autoRefreshEnabled;
+        
+        if (autoRefreshEnabled) {
+            document.getElementById('auto-refresh-text').textContent = 'Отключить автообновление';
+            autoRefreshInterval = setInterval(() => {
+                refreshLogs();
+                loadTrades();
+            }, 5000);
+        } else {
+            document.getElementById('auto-refresh-text').textContent = 'Включить автообновление';
+            clearInterval(autoRefreshInterval);
+        }
+        
+        showNotification(autoRefreshEnabled ? 'Автообновление включено' : 'Автообновление отключено', 'info');
+    }
+
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshLogs();
+        loadTrades();
+        loadErrors();
+        updateStats();
+        
+        // Обновление каждые 10 секунд при клике на вкладку сделок
+        document.getElementById('trades-tab').addEventListener('click', loadTrades);
+        document.getElementById('errors-tab').addEventListener('click', loadErrors);
+    });
+</script>
+{% endblock %}

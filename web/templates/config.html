@@ -1,0 +1,592 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - Trading Bot Control Panel{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2><i class="bi bi-gear"></i> Конфигурация бота</h2>
+        <small class="text-muted">Отредактируйте параметры торговли</small>
+    </div>
+</div>
+
+<!-- Кнопки действия -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <button class="btn btn-success" onclick="saveConfig()">
+            <i class="bi bi-check-circle"></i> Сохранить все
+        </button>
+        <button class="btn btn-warning" onclick="resetDefaults()">
+            <i class="bi bi-arrow-counterclockwise"></i> Восстановить defaults
+        </button>
+        <button class="btn btn-info" onclick="loadBackups()">
+            <i class="bi bi-cloud-download"></i> Восстановить из резервной копии
+        </button>
+    </div>
+</div>
+
+<!-- Bot Settings -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-robot"></i> Параметры бота</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Количество торговых пар</label>
+                    <input type="number" id="pairs" class="form-control" min="1" max="300">
+                    <small class="text-muted">Рекомендуется: 100</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Интервал итерации (сек)</label>
+                    <input type="number" id="interval" class="form-control" min="60" max="3600" step="60">
+                    <small class="text-muted">Рекомендуется: 300 (5 минут)</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Плечо (Leverage)</label>
+                    <input type="number" id="leverage" class="form-control" min="1" max="20">
+                    <small class="text-muted">Рекомендуется: 10x</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Максимум позиций одновременно</label>
+                    <input type="number" id="max_positions" class="form-control" min="1" max="50">
+                    <small class="text-muted">Рекомендуется: 5</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Размер позиции (USDT)</label>
+                    <input type="number" id="position_size" class="form-control" min="10" max="10000" step="10">
+                    <small class="text-muted">Рекомендуется: 100</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Порог уверенности</label>
+                    <input type="number" id="confidence_threshold" class="form-control" min="0.5" max="0.99" step="0.01">
+                    <small class="text-muted">Рекомендуется: 0.65 (65%)</small>
+                </div>
+                <div class="form-check mb-3">
+                    <input type="checkbox" id="testnet" class="form-check-input">
+                    <label class="form-check-label" for="testnet">
+                        Использовать Testnet
+                    </label>
+                    <small class="text-muted d-block mt-1">Включите для безопасного тестирования без реальных денег</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Strategies -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-lightbulb"></i> Веса стратегий</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle"></i> Сумма весов должна быть = 1.0 (100%)
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">LSTM (Deep Learning)</label>
+                    <input type="number" id="lstm_weight" class="form-control" min="0" max="1" step="0.05">
+                    <small class="text-muted">Доля LSTM в решении</small>
+                    <div class="progress mt-2" style="height: 20px;">
+                        <div id="lstm_bar" class="progress-bar" role="progressbar"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Mean Reversion</label>
+                    <input type="number" id="mr_weight" class="form-control" min="0" max="1" step="0.05">
+                    <small class="text-muted">Доля Mean Reversion в решении</small>
+                    <div class="progress mt-2" style="height: 20px;">
+                        <div id="mr_bar" class="progress-bar bg-warning" role="progressbar"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Microstructure (Order Book)</label>
+                    <input type="number" id="ms_weight" class="form-control" min="0" max="1" step="0.05">
+                    <small class="text-muted">Доля Microstructure в решении</small>
+                    <div class="progress mt-2" style="height: 20px;">
+                        <div id="ms_bar" class="progress-bar bg-success" role="progressbar"></div>
+                    </div>
+                </div>
+                <div class="alert alert-secondary" role="alert">
+                    <div>Сумма весов: <strong id="weights_sum">1.00</strong></div>
+                    <small id="weights_status" class="text-success">✓ OK</small>
+                </div>
+                <div class="form-check mb-2">
+                    <input type="checkbox" id="lstm_enabled" class="form-check-input">
+                    <label class="form-check-label" for="lstm_enabled">Включить LSTM</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input type="checkbox" id="mr_enabled" class="form-check-input">
+                    <label class="form-check-label" for="mr_enabled">Включить Mean Reversion</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="ms_enabled" class="form-check-input">
+                    <label class="form-check-label" for="ms_enabled">Включить Microstructure</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Risk Management -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-shield-check"></i> Управление рисками</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Take Profit (%)</label>
+                    <input type="number" id="take_profit" class="form-control" min="0.1" max="10" step="0.1">
+                    <small class="text-muted">Прибыль при закрытии позиции</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Stop Loss (%)</label>
+                    <input type="number" id="stop_loss" class="form-control" min="0.1" max="10" step="0.1">
+                    <small class="text-muted">Убыток при закрытии позиции</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Дневной лимит убытков (%)</label>
+                    <input type="number" id="daily_loss_limit" class="form-control" min="1" max="50" step="0.5">
+                    <small class="text-muted">Максимум убытка в день</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Максимум drawdown (%)</label>
+                    <input type="number" id="max_drawdown" class="form-control" min="5" max="50" step="0.5">
+                    <small class="text-muted">Максимальное падение от peak</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Сделок в день на пару</label>
+                    <input type="number" id="daily_trades" class="form-control" min="5" max="100">
+                    <small class="text-muted">Лимит сделок на одну торговую пару</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trading Settings -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-coin"></i> Параметры торговли</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Таймфрейм</label>
+                    <select id="timeframe" class="form-select">
+                        <option value="1m">1 минута</option>
+                        <option value="5m" selected>5 минут</option>
+                        <option value="15m">15 минут</option>
+                        <option value="30m">30 минут</option>
+                        <option value="1h">1 час</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Минимальный объем (USDT)</label>
+                    <input type="number" id="min_volume" class="form-control" min="100000" max="10000000" step="100000">
+                    <small class="text-muted">Минимальный дневной объем пары</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Максимальный спред (%)</label>
+                    <input type="number" id="max_spread" class="form-control" min="0.01" max="1" step="0.01">
+                    <small class="text-muted">Не торговать если спред выше</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Проскальзывание (%)</label>
+                    <input type="number" id="slippage" class="form-control" min="0.01" max="1" step="0.01">
+                    <small class="text-muted">Ожидаемое проскальзывание</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Logging -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-file-text"></i> Логирование</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Уровень логирования</label>
+                    <select id="log_level" class="form-select">
+                        <option value="DEBUG">DEBUG</option>
+                        <option value="INFO" selected>INFO</option>
+                        <option value="WARNING">WARNING</option>
+                        <option value="ERROR">ERROR</option>
+                    </select>
+                </div>
+                <div class="form-check mb-2">
+                    <input type="checkbox" id="log_trades" class="form-check-input" checked>
+                    <label class="form-check-label" for="log_trades">
+                        Логировать сделки
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input type="checkbox" id="log_signals" class="form-check-input" checked>
+                    <label class="form-check-label" for="log_signals">
+                        Логировать сигналы
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="log_errors" class="form-check-input" checked>
+                    <label class="form-check-label" for="log_errors">
+                        Логировать ошибки
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Presets -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-lightning"></i> Готовые конфигурации</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-outline-secondary w-100 mb-2" onclick="loadPreset('conservative')">
+                    <i class="bi bi-shield"></i> CONSERVATIVE
+                </button>
+                <button class="btn btn-outline-primary w-100 mb-2" onclick="loadPreset('balanced')">
+                    <i class="bi bi-scales"></i> BALANCED (рекомендуется)
+                </button>
+                <button class="btn btn-outline-danger w-100 mb-2" onclick="loadPreset('aggressive')">
+                    <i class="bi bi-fire"></i> AGGRESSIVE
+                </button>
+                <button class="btn btn-outline-info w-100 mb-2" onclick="loadPreset('ml_focused')">
+                    <i class="bi bi-robot"></i> ML FOCUSED
+                </button>
+                <small class="text-muted d-block mt-3">
+                    Клик на кнопку загрузит готовую конфигурацию
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Backups -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-cloud-check"></i> Резервные копии</h5>
+            </div>
+            <div class="card-body">
+                <div id="backups-list">
+                    <div class="text-muted">Загрузка резервных копий...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .progress {
+        background: rgba(13, 110, 253, 0.1);
+    }
+</style>
+
+<script>
+    // Готовые конфигурации
+    const PRESETS = {
+        conservative: {
+            pairs: 50,
+            interval: 600,
+            leverage: 5,
+            max_positions: 3,
+            position_size: 50,
+            confidence_threshold: 0.75,
+            lstm_weight: 0.5,
+            mr_weight: 0.35,
+            ms_weight: 0.15,
+            take_profit: 2.0,
+            stop_loss: 4.0,
+            daily_loss_limit: 3.0,
+        },
+        balanced: {
+            pairs: 100,
+            interval: 300,
+            leverage: 10,
+            max_positions: 5,
+            position_size: 100,
+            confidence_threshold: 0.65,
+            lstm_weight: 0.60,
+            mr_weight: 0.25,
+            ms_weight: 0.15,
+            take_profit: 1.0,
+            stop_loss: 2.0,
+            daily_loss_limit: 5.0,
+        },
+        aggressive: {
+            pairs: 150,
+            interval: 180,
+            leverage: 20,
+            max_positions: 10,
+            position_size: 200,
+            confidence_threshold: 0.55,
+            lstm_weight: 0.65,
+            mr_weight: 0.20,
+            ms_weight: 0.15,
+            take_profit: 0.5,
+            stop_loss: 1.5,
+            daily_loss_limit: 10.0,
+        },
+        ml_focused: {
+            pairs: 80,
+            interval: 300,
+            leverage: 12,
+            max_positions: 6,
+            position_size: 120,
+            confidence_threshold: 0.68,
+            lstm_weight: 0.85,
+            mr_weight: 0.10,
+            ms_weight: 0.05,
+            take_profit: 1.2,
+            stop_loss: 2.2,
+        }
+    };
+
+    // Загрузка конфигурации
+    async function loadConfig() {
+        try {
+            const response = await fetch('/api/config');
+            const config = await response.json();
+            
+            // Bot settings
+            document.getElementById('pairs').value = config.bot.pairs;
+            document.getElementById('interval').value = config.bot.interval;
+            document.getElementById('leverage').value = config.bot.leverage;
+            document.getElementById('max_positions').value = config.bot.max_positions;
+            document.getElementById('position_size').value = config.bot.position_size_usdt;
+            document.getElementById('confidence_threshold').value = config.bot.confidence_threshold;
+            document.getElementById('testnet').checked = config.bot.testnet;
+            
+            // Strategies
+            document.getElementById('lstm_weight').value = config.strategies.lstm_weight;
+            document.getElementById('mr_weight').value = config.strategies.mean_reversion_weight;
+            document.getElementById('ms_weight').value = config.strategies.microstructure_weight;
+            document.getElementById('lstm_enabled').checked = config.strategies.lstm_enabled;
+            document.getElementById('mr_enabled').checked = config.strategies.mean_reversion_enabled;
+            document.getElementById('ms_enabled').checked = config.strategies.microstructure_enabled;
+            
+            // Risk management
+            document.getElementById('take_profit').value = config.risk_management.take_profit_percent;
+            document.getElementById('stop_loss').value = config.risk_management.stop_loss_percent;
+            document.getElementById('daily_loss_limit').value = config.risk_management.daily_loss_limit;
+            document.getElementById('max_drawdown').value = config.risk_management.max_drawdown_percent;
+            document.getElementById('daily_trades').value = config.risk_management.daily_trades_per_symbol;
+            
+            // Trading settings
+            document.getElementById('timeframe').value = config.trading.timeframe;
+            document.getElementById('min_volume').value = config.trading.min_volume_usdt;
+            document.getElementById('max_spread').value = config.trading.max_spread_percent;
+            document.getElementById('slippage').value = config.trading.slippage_percent;
+            
+            // Logging
+            document.getElementById('log_level').value = config.logging.level;
+            document.getElementById('log_trades').checked = config.logging.log_trades;
+            document.getElementById('log_signals').checked = config.logging.log_signals;
+            document.getElementById('log_errors').checked = config.logging.log_errors;
+            
+            updateWeightsDisplay();
+        } catch (error) {
+            console.error('Error loading config:', error);
+            showNotification('Ошибка загрузки конфигурации', 'danger');
+        }
+    }
+
+    // Сохранение конфигурации
+    async function saveConfig() {
+        try {
+            const config = {
+                bot: {
+                    pairs: parseInt(document.getElementById('pairs').value),
+                    interval: parseInt(document.getElementById('interval').value),
+                    leverage: parseInt(document.getElementById('leverage').value),
+                    max_positions: parseInt(document.getElementById('max_positions').value),
+                    position_size_usdt: parseInt(document.getElementById('position_size').value),
+                    confidence_threshold: parseFloat(document.getElementById('confidence_threshold').value),
+                    testnet: document.getElementById('testnet').checked,
+                },
+                strategies: {
+                    lstm_weight: parseFloat(document.getElementById('lstm_weight').value),
+                    mean_reversion_weight: parseFloat(document.getElementById('mr_weight').value),
+                    microstructure_weight: parseFloat(document.getElementById('ms_weight').value),
+                    lstm_enabled: document.getElementById('lstm_enabled').checked,
+                    mean_reversion_enabled: document.getElementById('mr_enabled').checked,
+                    microstructure_enabled: document.getElementById('ms_enabled').checked,
+                },
+                risk_management: {
+                    take_profit_percent: parseFloat(document.getElementById('take_profit').value),
+                    stop_loss_percent: parseFloat(document.getElementById('stop_loss').value),
+                    daily_loss_limit: parseFloat(document.getElementById('daily_loss_limit').value),
+                    max_drawdown_percent: parseFloat(document.getElementById('max_drawdown').value),
+                    daily_trades_per_symbol: parseInt(document.getElementById('daily_trades').value),
+                },
+                trading: {
+                    timeframe: document.getElementById('timeframe').value,
+                    min_volume_usdt: parseInt(document.getElementById('min_volume').value),
+                    max_spread_percent: parseFloat(document.getElementById('max_spread').value),
+                    slippage_percent: parseFloat(document.getElementById('slippage').value),
+                },
+                logging: {
+                    level: document.getElementById('log_level').value,
+                    log_trades: document.getElementById('log_trades').checked,
+                    log_signals: document.getElementById('log_signals').checked,
+                    log_errors: document.getElementById('log_errors').checked,
+                }
+            };
+            
+            const response = await fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showNotification('Конфигурация успешно сохранена', 'success');
+            } else {
+                showNotification('Ошибка сохранения конфигурации', 'danger');
+            }
+        } catch (error) {
+            console.error('Error saving config:', error);
+            showNotification('Ошибка: ' + error.message, 'danger');
+        }
+    }
+
+    // Восстановление defaults
+    async function resetDefaults() {
+        if (!confirm('Восстановить конфигурацию по умолчанию? Текущие настройки будут потеряны.')) return;
+        
+        try {
+            const response = await fetch('/api/config/defaults', { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.success) {
+                showNotification('Конфигурация восстановлена к значениям по умолчанию', 'success');
+                loadConfig();
+            } else {
+                showNotification('Ошибка восстановления', 'danger');
+            }
+        } catch (error) {
+            console.error('Error resetting defaults:', error);
+            showNotification('Ошибка: ' + error.message, 'danger');
+        }
+    }
+
+    // Загрузка готовой конфигурации
+    function loadPreset(preset) {
+        if (!PRESETS[preset]) return;
+        
+        const config = PRESETS[preset];
+        document.getElementById('pairs').value = config.pairs;
+        document.getElementById('interval').value = config.interval;
+        document.getElementById('leverage').value = config.leverage;
+        document.getElementById('max_positions').value = config.max_positions;
+        document.getElementById('position_size').value = config.position_size;
+        document.getElementById('confidence_threshold').value = config.confidence_threshold;
+        document.getElementById('lstm_weight').value = config.lstm_weight;
+        document.getElementById('mr_weight').value = config.mr_weight;
+        document.getElementById('ms_weight').value = config.ms_weight;
+        document.getElementById('take_profit').value = config.take_profit;
+        document.getElementById('stop_loss').value = config.stop_loss;
+        document.getElementById('daily_loss_limit').value = config.daily_loss_limit;
+        
+        updateWeightsDisplay();
+        showNotification(`Загружена конфигурация: ${preset.toUpperCase()}`, 'info');
+    }
+
+    // Обновление отображения весов
+    function updateWeightsDisplay() {
+        const lstm = parseFloat(document.getElementById('lstm_weight').value) || 0;
+        const mr = parseFloat(document.getElementById('mr_weight').value) || 0;
+        const ms = parseFloat(document.getElementById('ms_weight').value) || 0;
+        const sum = lstm + mr + ms;
+        
+        document.getElementById('lstm_bar').style.width = (lstm * 100) + '%';
+        document.getElementById('mr_bar').style.width = (mr * 100) + '%';
+        document.getElementById('ms_bar').style.width = (ms * 100) + '%';
+        
+        document.getElementById('weights_sum').textContent = sum.toFixed(2);
+        const status = document.getElementById('weights_status');
+        
+        if (Math.abs(sum - 1.0) < 0.01) {
+            status.textContent = '✓ OK';
+            status.className = 'text-success';
+        } else {
+            status.textContent = '✗ Сумма должна быть 1.0';
+            status.className = 'text-danger';
+        }
+    }
+
+    // Загрузка список резервных копий
+    async function loadBackups() {
+        try {
+            const response = await fetch('/api/config/backups');
+            const data = await response.json();
+            
+            if (data.backups.length === 0) {
+                document.getElementById('backups-list').innerHTML = '<p class="text-muted">Резервных копий не найдено</p>';
+                return;
+            }
+            
+            let html = '<div class="list-group">';
+            data.backups.forEach(backup => {
+                html += `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${backup}</strong>
+                            <br><small class="text-muted">${backup.replace('bot_config_backup_', '').replace('.json', '')}</small>
+                        </div>
+                        <button class="btn btn-sm btn-success" onclick="restoreBackup('${backup}')">
+                            <i class="bi bi-download"></i> Восстановить
+                        </button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            document.getElementById('backups-list').innerHTML = html;
+        } catch (error) {
+            console.error('Error loading backups:', error);
+        }
+    }
+
+    // Восстановление из резервной копии
+    async function restoreBackup(backupName) {
+        if (!confirm(`Восстановить конфигурацию из ${backupName}?`)) return;
+        
+        try {
+            const response = await fetch(`/api/config/restore/${backupName}`, { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.success) {
+                showNotification('Конфигурация восстановлена из резервной копии', 'success');
+                loadConfig();
+            } else {
+                showNotification('Ошибка восстановления', 'danger');
+            }
+        } catch (error) {
+            console.error('Error restoring backup:', error);
+            showNotification('Ошибка: ' + error.message, 'danger');
+        }
+    }
+
+    // Event listeners для обновления весов
+    document.getElementById('lstm_weight').addEventListener('change', updateWeightsDisplay);
+    document.getElementById('mr_weight').addEventListener('change', updateWeightsDisplay);
+    document.getElementById('ms_weight').addEventListener('change', updateWeightsDisplay);
+
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', () => {
+        loadConfig();
+        loadBackups();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Trading Bot Control Panel{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+    </div>
+</div>
+
+<!-- Статус Бота -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-box">
+            <div class="stat-value" id="bot-status">
+                <span class="spinner-border spinner-border-sm me-2"></span>
+            </div>
+            <div class="stat-label">Статус бота</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-box">
+            <div class="stat-value" id="log-lines">0</div>
+            <div class="stat-label">Строк логов</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-box">
+            <div class="stat-value" id="trade-count">0</div>
+            <div class="stat-label">Сделок</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-box">
+            <div class="stat-value" id="error-count">0</div>
+            <div class="stat-label">Ошибок</div>
+        </div>
+    </div>
+</div>
+
+<!-- Конфигурация -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-gear"></i> Основные параметры</h5>
+            </div>
+            <div class="card-body">
+                <div id="config-display" class="config-display">
+                    <div class="loading-spinner">
+                        <div class="spinner-border" role="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-shield-check"></i> Управление рисками</h5>
+            </div>
+            <div class="card-body">
+                <div id="risk-display" class="risk-display">
+                    <div class="loading-spinner">
+                        <div class="spinner-border" role="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Логи и Сделки -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-file-text"></i> Последние логи</h5>
+                <div>
+                    <button class="btn btn-sm btn-primary" onclick="refreshLogs()">
+                        <i class="bi bi-arrow-clockwise"></i> Обновить
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="clearLogs()">
+                        <i class="bi bi-trash"></i> Очистить
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="logs-display" style="max-height: 400px; overflow-y: auto; background: rgba(0, 0, 0, 0.3); border-radius: 5px; padding: 15px; font-family: monospace; font-size: 0.85rem;">
+                    <div class="loading-spinner">
+                        <div class="spinner-border" role="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Последние сделки -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-coin"></i> Последние сделки</h5>
+            </div>
+            <div class="card-body">
+                <div id="trades-display">
+                    <div class="loading-spinner">
+                        <div class="spinner-border" role="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .config-display .config-item {
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(13, 110, 253, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .config-display .config-item:last-child {
+        border-bottom: none;
+    }
+    
+    .config-item .label {
+        color: #bdc3c7;
+        font-weight: 500;
+    }
+    
+    .config-item .value {
+        color: var(--primary-color);
+        font-weight: bold;
+    }
+    
+    .log-line {
+        padding: 5px 0;
+        color: #ecf0f1;
+        border-bottom: 1px solid rgba(13, 110, 253, 0.1);
+    }
+    
+    .log-line.error {
+        color: #f8b4b8;
+    }
+    
+    .log-line.warning {
+        color: #ffe88b;
+    }
+    
+    .log-line.success {
+        color: #95e1d3;
+    }
+</style>
+
+<script>
+    // Функция для обновления статистики
+    async function updateStats() {
+        try {
+            const response = await fetch('/api/logs/stats');
+            const stats = await response.json();
+            
+            document.getElementById('log-lines').textContent = formatNumber(stats.total_lines || 0);
+            document.getElementById('trade-count').textContent = formatNumber(stats.trades_count || 0);
+            document.getElementById('error-count').textContent = formatNumber(stats.errors_count || 0);
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+        }
+    }
+
+    // Функция для обновления конфигурации
+    async function updateConfig() {
+        try {
+            const response = await fetch('/api/config');
+            const config = await response.json();
+            
+            let html = '';
+            
+            // Bot settings
+            html += `<div class="config-item">
+                <span class="label">Торговые пары:</span>
+                <span class="value">${config.bot.pairs}</span>
+            </div>`;
+            html += `<div class="config-item">
+                <span class="label">Интервал (сек):</span>
+                <span class="value">${config.bot.interval}</span>
+            </div>`;
+            html += `<div class="config-item">
+                <span class="label">Плечо:</span>
+                <span class="value">${config.bot.leverage}x</span>
+            </div>`;
+            html += `<div class="config-item">
+                <span class="label">Max позиций:</span>
+                <span class="value">${config.bot.max_positions}</span>
+            </div>`;
+            html += `<div class="config-item">
+                <span class="label">Размер позиции:</span>
+                <span class="value">$${config.bot.position_size_usdt}</span>
+            </div>`;
+            html += `<div class="config-item">
+                <span class="label">Testnet:</span>
+                <span class="value">${config.bot.testnet ? '✓ Да' : '✗ Нет'}</span>
+            </div>`;
+            
+            document.getElementById('config-display').innerHTML = html;
+            
+            // Risk management settings
+            let riskHtml = '';
+            riskHtml += `<div class="config-item">
+                <span class="label">Take Profit:</span>
+                <span class="value">+${config.risk_management.take_profit_percent}%</span>
+            </div>`;
+            riskHtml += `<div class="config-item">
+                <span class="label">Stop Loss:</span>
+                <span class="value">-${config.risk_management.stop_loss_percent}%</span>
+            </div>`;
+            riskHtml += `<div class="config-item">
+                <span class="label">Дневной лимит убытков:</span>
+                <span class="value">${config.risk_management.daily_loss_limit}%</span>
+            </div>`;
+            riskHtml += `<div class="config-item">
+                <span class="label">Макс drawdown:</span>
+                <span class="value">${config.risk_management.max_drawdown_percent}%</span>
+            </div>`;
+            riskHtml += `<div class="config-item">
+                <span class="label">Сделок/день на пару:</span>
+                <span class="value">${config.risk_management.daily_trades_per_symbol}</span>
+            </div>`;
+            
+            document.getElementById('risk-display').innerHTML = riskHtml;
+        } catch (error) {
+            console.error('Error fetching config:', error);
+        }
+    }
+
+    // Функция для обновления логов
+    async function refreshLogs() {
+        try {
+            const response = await fetch('/api/logs?lines=20');
+            const data = await response.json();
+            
+            let html = '';
+            data.logs.forEach(log => {
+                let logClass = '';
+                if (log.includes('ERROR')) logClass = 'error';
+                else if (log.includes('WARNING')) logClass = 'warning';
+                else if (log.includes('TRADE') || log.includes('ORDER')) logClass = 'success';
+                
+                html += `<div class="log-line ${logClass}">${escapeHtml(log)}</div>`;
+            });
+            
+            document.getElementById('logs-display').innerHTML = html;
+        } catch (error) {
+            console.error('Error fetching logs:', error);
+        }
+    }
+
+    // Функция для загрузки последних сделок
+    async function loadRecentTrades() {
+        try {
+            const response = await fetch('/api/logs/trades?count=10');
+            const data = await response.json();
+            
+            if (data.trades.length === 0) {
+                document.getElementById('trades-display').innerHTML = '<p class="text-muted">Сделок не найдено</p>';
+                return;
+            }
+            
+            let html = '<table class="table table-hover"><tbody>';
+            data.trades.forEach(trade => {
+                html += `<tr><td><small class="text-muted">${escapeHtml(trade)}</small></td></tr>`;
+            });
+            html += '</tbody></table>';
+            
+            document.getElementById('trades-display').innerHTML = html;
+        } catch (error) {
+            console.error('Error fetching trades:', error);
+        }
+    }
+
+    // Функция для очистки логов
+    async function clearLogs() {
+        if (!confirm('Вы уверены? Это удалит все логи.')) return;
+        
+        try {
+            const response = await fetch('/api/logs/clear', { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.success) {
+                showNotification('Логи успешно очищены', 'success');
+                refreshLogs();
+                updateStats();
+            } else {
+                showNotification('Ошибка очистки логов', 'danger');
+            }
+        } catch (error) {
+            console.error('Error clearing logs:', error);
+            showNotification('Ошибка: ' + error.message, 'danger');
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', () => {
+        updateStats();
+        updateConfig();
+        refreshLogs();
+        loadRecentTrades();
+        
+        // Обновление каждые 5 секунд
+        setInterval(updateStats, 5000);
+        setInterval(refreshLogs, 5000);
+        
+        // Обновление конфига каждые 30 секунд
+        setInterval(updateConfig, 30000);
+        
+        // Обновление сделок каждые 10 секунд
+        setInterval(loadRecentTrades, 10000);
+    });
+</script>
+{% endblock %}
