@@ -11,25 +11,50 @@ echo "║  AI-торговым ботом Bybit                                 
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 
-# Проверка Python
-echo "🔍 Проверка Python..."
-if ! command -v python3 &> /dev/null; then
-    echo "❌ Python 3 не установлен"
+# Найти Python (работает и на Windows и на Linux)
+PYTHON_CMD="python"
+if ! command -v python &> /dev/null; then
+    PYTHON_CMD="python3"
+fi
+
+if ! command -v $PYTHON_CMD &> /dev/null; then
+    echo "❌ Python не установлен"
     exit 1
 fi
 
-PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+echo "🔍 Проверка Python..."
+PYTHON_VERSION=$($PYTHON_CMD -c 'import sys; print(".".join(map(str, sys.version_info[:2])))' 2>/dev/null)
+if [ -z "$PYTHON_VERSION" ]; then
+    echo "❌ Ошибка при проверке Python"
+    exit 1
+fi
 echo "✓ Python $PYTHON_VERSION найден"
 echo ""
 
-# Проверка зависимостей
+# Проверка зависимостей - более гибкая проверка
 echo "📦 Проверка зависимостей..."
-python3 -c "import flask" 2>/dev/null
+$PYTHON_CMD -c "
+import sys
+missing = []
+required = ['flask', 'flask_cors', 'flask_httpauth', 'dotenv', 'psutil']
+for pkg in required:
+    try:
+        __import__(pkg)
+    except ImportError:
+        missing.append(pkg)
+
+if missing:
+    print('Отсутствуют пакеты:', ', '.join(missing))
+    sys.exit(1)
+else:
+    print('ok')
+" 2>/dev/null
+
 if [ $? -ne 0 ]; then
-    echo "❌ Зависимости не установлены"
+    echo "❌ Зависимости не установлены или неправильно установлены"
     echo ""
-    echo "Установите их командой:"
-    echo "  pip install -r requirements.txt"
+    echo "Переустановите зависимости:"
+    echo "  pip install --upgrade --force-reinstall -r requirements.txt"
     echo ""
     exit 1
 fi
@@ -42,8 +67,11 @@ if [ ! -f ".env" ]; then
     echo "⚠️  Файл .env не найден"
     echo ""
     echo "Создайте его из .env.example:"
-    echo "  cp .env.example .env"
-    echo "  nano .env"
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+        echo "  copy .env.example .env"
+    else
+        echo "  cp .env.example .env"
+    fi
     echo ""
     echo "Затем добавьте ваши API ключи от Bybit"
     echo ""
